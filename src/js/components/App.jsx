@@ -1,9 +1,12 @@
 import React, {Component} from 'react';
+import {initShaderProgram} from '../utils/webgl-utils';
+
+import vSource from '../../shaders/vert.glsl';
+import fSource from '../../shaders/frag.glsl';
 
 const canvasStyle = {
     width: "640px",
-    height: "480px",
-    borderStyle: 'solid'
+    height: "480px"
 };
 
 class App extends Component {
@@ -28,6 +31,8 @@ class App extends Component {
         gl.depthFunc(gl.LEQUAL);
 
         gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+
+        const shaderProgram = initShaderProgram(gl, vSource, fSource);
 
     }
 

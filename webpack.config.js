@@ -50,7 +50,7 @@ var config = {
             {
                 test: /\.glsl$/,
                 exclude: /node_modules/,
-                loader: 'webpack-glsl'
+                loader: 'webpack-glsl-loader'
             }
         ]
     }
