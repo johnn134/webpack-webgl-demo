@@ -64,6 +64,11 @@ const loadShader = (gl, type, source) => {
 
 };
 
+/**
+ * Create and return buffer
+ * @param {Context} gl webgl context
+ * @returns {Object} buffer
+ */
 const initBuffers = gl => {
 
     const positionBuffer = gl.createBuffer();
