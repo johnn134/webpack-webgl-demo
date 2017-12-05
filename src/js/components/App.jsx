@@ -5,9 +5,12 @@ import {mat4} from 'gl-matrix';
 import vSource from '../../shaders/vert.glsl';
 import fSource from '../../shaders/frag.glsl';
 
+const CANVAS_WIDTH = 640;
+const CANVAS_HEIGHT = 480;
+
 const canvasStyle = {
-    width: "640px",
-    height: "480px",
+    width: `${CANVAS_WIDTH}px`,
+    height: `${CANVAS_HEIGHT}px`,
     borderStyle: "solid"
 };
 
@@ -17,7 +20,7 @@ class App extends Component {
 
         super(props);
 
-        this.squareRotation = 0.0;
+        this.cubeRotation = 0.0;
         this.then = 0;
 
     }
@@ -27,6 +30,10 @@ class App extends Component {
         console.log('starting');
 
         const canvas = document.getElementById('canvas');
+
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
         const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
 
         if (!gl) {
@@ -93,18 +100,25 @@ class App extends Component {
 
         const modelViewMatrix = mat4.create();
 
+        //  Translate object
         mat4.translate(modelViewMatrix,
                        modelViewMatrix,
                        [-0.0, 0.0, -6.0]);
 
+        //  Rotate object
         mat4.rotate(modelViewMatrix,
                     modelViewMatrix,
-                    this.squareRotation,
+                    this.cubeRotation,
                     [0, 0, 1]);
+
+        mat4.rotate(modelViewMatrix,
+                    modelViewMatrix,
+                    this.cubeRotation * .7,
+                    [0, 1, 0]);
 
         {
             //  Pull positions from buffer into vertexPosition attribute
-            const numComponents = 2;
+            const numComponents = 3;
             const type = gl.FLOAT;
             const normalize = false;
             const stride = 0;
@@ -127,6 +141,7 @@ class App extends Component {
         }
 
         {
+            //  Pull colors from buffer into vertexColor attribute
             const numComponents = 4;
             const type = gl.FLOAT;
             const normalize = false;
@@ -148,6 +163,8 @@ class App extends Component {
             );
         }
 
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
+
         //  Use program
         gl.useProgram(programInfo.program);
 
@@ -164,12 +181,13 @@ class App extends Component {
         );
 
         {
+            const vertexCount = 36;
+            const type = gl.UNSIGNED_SHORT;
             const offset = 0;
-            const vertexCount = 4;
-            gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
+            gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
         }
 
-        this.squareRotation += deltaTime;
+        this.cubeRotation += deltaTime;
 
     }
 
