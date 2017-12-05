@@ -13,6 +13,15 @@ const canvasStyle = {
 
 class App extends Component {
 
+    constructor(props) {
+
+        super(props);
+
+        this.squareRotation = 0.0;
+        this.then = 0;
+
+    }
+
     start () {
 
         console.log('starting');
@@ -43,11 +52,23 @@ class App extends Component {
 
         const buffers = initBuffers(gl);
 
-        this.drawScene(gl, programInfo, buffers);
+        const render = (now) => {
+
+            now *= 0.001;
+            const deltaTime = now - this.then;
+            this.then = now;
+
+            this.drawScene(gl, programInfo, buffers, deltaTime);
+
+            requestAnimationFrame(render);
+
+        }
+
+        requestAnimationFrame(render);
 
     }
 
-    drawScene (gl, programInfo, buffers) {
+    drawScene (gl, programInfo, buffers, deltaTime) {
 
         gl.clearColor(0.0, 0.0, 0.0, 1.0);
         gl.clearDepth(1.0);
@@ -72,7 +93,14 @@ class App extends Component {
 
         const modelViewMatrix = mat4.create();
 
-        mat4.translate(modelViewMatrix, modelViewMatrix, [-0.0, 0.0, -6.0]);
+        mat4.translate(modelViewMatrix,
+                       modelViewMatrix,
+                       [-0.0, 0.0, -6.0]);
+
+        mat4.rotate(modelViewMatrix,
+                    modelViewMatrix,
+                    this.squareRotation,
+                    [0, 0, 1]);
 
         {
             //  Pull positions from buffer into vertexPosition attribute
@@ -123,8 +151,6 @@ class App extends Component {
         //  Use program
         gl.useProgram(programInfo.program);
 
-        console.log(projectionMatrix);
-
         //  Set shader uniforms
         gl.uniformMatrix4fv(
             programInfo.uniformLocations.projectionMatrix,
@@ -138,11 +164,13 @@ class App extends Component {
         );
 
         {
-            console.log('drawing');
             const offset = 0;
             const vertexCount = 4;
             gl.drawArrays(gl.TRIANGLE_STRIP, offset, vertexCount);
         }
+
+        this.squareRotation += deltaTime;
+
     }
 
     componentDidMount () {
