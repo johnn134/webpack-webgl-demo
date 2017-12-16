@@ -4,7 +4,7 @@
  * Utility functions for webgl
  */
 
-import cubePositions from '../../obj/cube';
+import {positions, indices, textureCoordinates} from '../../obj/cube';
 
 /**
  * Initializes a shader program from the given fragment and vertex shaders
@@ -77,58 +77,135 @@ const initBuffers = gl => {
    const positionBuffer = gl.createBuffer();
 
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,
-                  new Float32Array(cubePositions),
-                  gl.STATIC_DRAW);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(positions),
+        gl.STATIC_DRAW
+    );
 
-    // Colors
-    const faceColors = [
-        [1.0,  1.0,  1.0,  1.0],    // Front face: white
-        [1.0,  0.0,  0.0,  1.0],    // Back face: red
-        [0.0,  1.0,  0.0,  1.0],    // Top face: green
-        [0.0,  0.0,  1.0,  1.0],    // Bottom face: blue
-        [1.0,  1.0,  0.0,  1.0],    // Right face: yellow
-        [1.0,  0.0,  1.0,  1.0],    // Left face: purple
-    ];
+    // Texture Coordinates
+    const textureCoordBuffer = gl.createBuffer();
 
-    var colors = [];
-
-    for (let j = 0; j < faceColors.length; j++) {
-        const c = faceColors[j];
-
-        colors = colors.concat(c, c, c, c);
-    }
-
-    const colorBuffer = gl.createBuffer();
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, colorBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER,
-                  new Float32Array(colors),
-                  gl.STATIC_DRAW);
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(textureCoordinates),
+        gl.STATIC_DRAW
+    );
 
     //  Indices
-    const indices = [
-        0,  1,  2,      0,  2,  3,    // front
-        4,  5,  6,      4,  6,  7,    // back
-        8,  9,  10,     8,  10, 11,   // top
-        12, 13, 14,     12, 14, 15,   // bottom
-        16, 17, 18,     16, 18, 19,   // right
-        20, 21, 22,     20, 22, 23,   // left
-    ];
-
     const indexBuffer = gl.createBuffer();
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,
-                  new Uint16Array(indices),
-                  gl.STATIC_DRAW);
+    gl.bufferData(
+        gl.ELEMENT_ARRAY_BUFFER,
+        new Uint16Array(indices),
+        gl.STATIC_DRAW
+    );
 
     return {
         position: positionBuffer,
-        color: colorBuffer,
+        textureCoord: textureCoordBuffer,
         indices: indexBuffer
     };
 
 };
 
-export { initShaderProgram, initBuffers };
+/**
+ * Initialize a texture and load an image.
+ * When the image finished loading copy it into the texture.
+ * @param {Context} gl 
+ * @param {string} url 
+ */
+const loadTexture = (gl, url) => {
+
+    const texture = gl.createTexture();
+    
+    gl.bindTexture(gl.TEXTURE_2D, texture);
+
+    /**
+     * Because images have to be download over the internet
+     * they might take a moment until they are ready.
+     * Until then put a single pixel in the texture so we can
+     * use it immediately. When the image has finished downloading
+     * we'll update the texture with the contents of the image.
+     */
+    const level = 0;
+    const internalFormat = gl.RGBA;
+    const width = 1;
+    const height = 1;
+    const border = 0;
+    const srcFormat = gl.RGBA;
+    const srcType = gl.UNSIGNED_BYTE;
+    const pixel = new Uint8Array([0, 0, 255, 255]);
+
+    gl.texImage2D(
+        gl.TEXTURE_2D,
+        level,
+        internalFormat,
+        width,
+        height,
+        border,
+        srcFormat,
+        srcType,
+        pixel
+    );
+
+    const image = new Image();
+
+    image.onload = () => {
+
+        gl.bindTexture(gl.TEXTURE_2D, texture);
+        gl.texImage2D(
+            gl.TEXTURE_2D,
+            level,
+            internalFormat,
+            srcFormat,
+            srcType,
+            image
+        );
+
+        // WebGL1 has different requirements for power of 2 images
+        // vs non power of 2 images so check if the image is a
+        // power of 2 in both dimensions.
+        if (isPowerOf2(image.width) && isPowerOf2(image.height)) {
+
+            gl.generateMipmap(gl.TEXTURE_2D);
+
+        } else {
+
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_WRAP_S,
+                gl.CLAMP_TO_EDGE
+            );
+            
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_WRAP_T,
+                gl.CLAMP_TO_EDGE
+            );
+
+            gl.texParameteri(
+                gl.TEXTURE_2D,
+                gl.TEXTURE_MIN_FILTER,
+                gl.LINEAR
+            );
+
+        }
+
+    };
+
+    image.src = url;
+
+    return texture;
+
+};
+
+const isPowerOf2 = value => {
+
+    return (value & (value - 1)) === 0;
+
+};
+
+export { initShaderProgram, initBuffers, loadTexture };
