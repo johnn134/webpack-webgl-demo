@@ -55,11 +55,13 @@ class App extends Component {
             program: shaderProgram,
             attribLocations: {
               vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
+              vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
               textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
             },
             uniformLocations: {
               modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
               projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
+              normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
               uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
             },
         };
@@ -127,6 +129,11 @@ class App extends Component {
                     this.cubeRotation * .7,
                     [0, 1, 0]);
 
+        //  Normals matrix
+        const normalMatrix = mat4.create();
+        mat4.invert(normalMatrix, modelViewMatrix);
+        mat4.transpose(normalMatrix, normalMatrix);
+
         {
             //  Pull positions from buffer into vertexPosition attribute
             const numComponents = 3;
@@ -152,7 +159,31 @@ class App extends Component {
         }
 
         {
-            //  Pull colors from buffer into vertexColor attribute
+            //  Pull normals from buffer into vertexPosition attribute
+            const numComponents = 3;
+            const type = gl.FLOAT;
+            const normalize = false;
+            const stride = 0;
+            const offset = 0;
+
+            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
+
+            gl.vertexAttribPointer(
+                programInfo.attribLocations.vertexNormal,
+                numComponents,
+                type,
+                normalize,
+                stride,
+                offset
+            );
+
+            gl.enableVertexAttribArray(
+                programInfo.attribLocations.vertexNormal
+            );
+        }
+
+        {
+            //  Pull teture coords from buffer into textureCoord attribute
             const numComponents = 2;
             const type = gl.FLOAT;
             const normalize = false;
@@ -190,6 +221,11 @@ class App extends Component {
             programInfo.uniformLocations.modelViewMatrix,
             false,
             modelViewMatrix
+        );
+        gl.uniformMatrix4fv(
+            programInfo.uniformLocations.normalMatrix,
+            false,
+            normalMatrix
         );
 
         // Activate and bind textures
