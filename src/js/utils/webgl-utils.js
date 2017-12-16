@@ -4,7 +4,7 @@
  * Utility functions for webgl
  */
 
-import {positions, indices, textureCoordinates} from '../../obj/cube';
+import cube from '../../obj/cube';
 
 /**
  * Initializes a shader program from the given fragment and vertex shaders
@@ -79,17 +79,17 @@ const initBuffers = gl => {
     gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
     gl.bufferData(
         gl.ARRAY_BUFFER,
-        new Float32Array(positions),
+        new Float32Array(cube.positions),
         gl.STATIC_DRAW
     );
 
-    // Texture Coordinates
-    const textureCoordBuffer = gl.createBuffer();
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    //  Normals
+    const normalBuffer = gl.createBuffer();
+    
+    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
     gl.bufferData(
         gl.ARRAY_BUFFER,
-        new Float32Array(textureCoordinates),
+        new Float32Array(cube.normals),
         gl.STATIC_DRAW
     );
 
@@ -99,12 +99,23 @@ const initBuffers = gl => {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(
         gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(indices),
+        new Uint16Array(cube.indices),
+        gl.STATIC_DRAW
+    );
+
+    // Texture Coordinates
+    const textureCoordBuffer = gl.createBuffer();
+
+    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
+    gl.bufferData(
+        gl.ARRAY_BUFFER,
+        new Float32Array(cube.textureCoordinates),
         gl.STATIC_DRAW
     );
 
     return {
         position: positionBuffer,
+        normal: normalBuffer,
         textureCoord: textureCoordBuffer,
         indices: indexBuffer
     };
