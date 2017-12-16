@@ -1,13 +1,12 @@
 var webpack = require('webpack');
 var path = require('path');
+
 var HtmlWebpackPlugin = require('html-webpack-plugin');
 var OpenBrowserPlugin = require('open-browser-webpack-plugin');
+var CopyWebpackPlugin = require('copy-webpack-plugin');
 
 var ROOT_PATH = path.resolve(__dirname);
 var ENTRY_PATH = path.resolve(ROOT_PATH, 'src/js/index');
-var APP_PATH = path.resolve(__dirname, 'src');
-var SRC_PATH = path.resolve(ROOT_PATH, 'src');
-var JS_PATH = path.resolve(ROOT_PATH, 'src/js');
 var TEMPLATE_PATH = path.resolve(ROOT_PATH, 'src/index.html');
 var SHADER_PATH = path.resolve(ROOT_PATH, 'src/shaders');
 var BUILD_PATH = path.resolve(ROOT_PATH, 'build');
@@ -15,6 +14,12 @@ var BUILD_PATH = path.resolve(ROOT_PATH, 'build');
 var config = {
     entry: ENTRY_PATH,
     plugins: [
+        new CopyWebpackPlugin([
+            {
+                from: './src/images',
+                to: './images'
+            }
+        ]),
         new HtmlWebpackPlugin({
             inject: 'body',
             template: TEMPLATE_PATH
@@ -51,6 +56,11 @@ var config = {
                 test: /\.glsl$/,
                 exclude: /node_modules/,
                 loader: 'webpack-glsl-loader'
+            },
+            {
+                test: /\.png$/,
+                exclude: /node_modules/,
+                loader: 'file-loader?name=images/[name].[ext]'
             }
         ]
     }
