@@ -1,18 +1,26 @@
 import React, {Component} from 'react';
-import {
-    initShaderProgram,
-    initBuffers,
-    loadTexture
-} from '../utils/webgl-utils';
-import {mat4} from 'gl-matrix';
 
-import vSource from '../../shaders/vert.glsl';
-import fSource from '../../shaders/frag.glsl';
+import WebGLEnvironment from '../webgl/WebGLEnvironment';
+
+import vSource from '../../shaders/flat_shading/vert.glsl';
+import fSource from '../../shaders/flat_shading/frag.glsl';
+
+import cubePLY from '../../ply/cube.ply';
+import teapotPLY from '../../ply/teapot.ply';
+import airplanePLY from '../../ply/airplane.ply';
+import pyramidSimplePLY from '../../ply/pyramid_simple.ply';
+import pyramidComplexPLY from '../../ply/pyramid_complex.ply';
+
+import cubeOBJ from '../../obj/cube.obj';
 
 import cubeImage from '../../images/cubetexture.png';
 
 const CANVAS_WIDTH = 640;
 const CANVAS_HEIGHT = 480;
+
+const MIN_FOV = 1;
+const MAX_FOV = 180;
+const DEFAULT_FOV = 45;
 
 const canvasStyle = {
     width: `${CANVAS_WIDTH}px`,
@@ -26,229 +34,130 @@ class App extends Component {
 
         super(props);
 
-        this.cubeRotation = 0.0;
-        this.then = 0;
-
-    }
-
-    start () {
-
-        console.log('starting');
-
-        const canvas = document.getElementById('canvas');
-
-        canvas.width = CANVAS_WIDTH;
-        canvas.height = CANVAS_HEIGHT;
-
-        const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
-
-        if (!gl) {
-
-            alert('Unable to initialize WebGL. Your browser may not support it.');
-
-        }
-
-        //  initialize shader program
-        const shaderProgram = initShaderProgram(gl, vSource, fSource);
-
-        const programInfo = {
-            program: shaderProgram,
-            attribLocations: {
-              vertexPosition: gl.getAttribLocation(shaderProgram, 'aVertexPosition'),
-              vertexNormal: gl.getAttribLocation(shaderProgram, 'aVertexNormal'),
-              textureCoord: gl.getAttribLocation(shaderProgram, 'aTextureCoord')
+        this.state = {
+            'fovSliderValue': DEFAULT_FOV,
+            'rot': {
+                'x': 0,
+                'y': 0,
+                'z': 0
             },
-            uniformLocations: {
-              modelViewMatrix: gl.getUniformLocation(shaderProgram, 'uModelViewMatrix'),
-              projectionMatrix: gl.getUniformLocation(shaderProgram, 'uProjectionMatrix'),
-              normalMatrix: gl.getUniformLocation(shaderProgram, 'uNormalMatrix'),
-              uSampler: gl.getUniformLocation(shaderProgram, 'uSampler')
+            'pos': {
+                'x': 0,
+                'y': 0,
+                'z': 0
+            },
+            'scale': {
+                'x': 1,
+                'y': 1,
+                'z': 1
             },
         };
 
-        //  Initialize buffers
-        const buffers = initBuffers(gl);
-
-        // Load texture
-        const texture = loadTexture(gl, cubeImage);
-
-        const render = (now) => {
-
-            now *= 0.001;
-            const deltaTime = now - this.then;
-            this.then = now;
-
-            this.drawScene(gl, programInfo, buffers, texture, deltaTime);
-
-            requestAnimationFrame(render);
-
-        }
-
-        requestAnimationFrame(render);
-
-    }
-
-    drawScene (gl, programInfo, buffers, texture, deltaTime) {
-
-        gl.clearColor(0.0, 0.0, 0.0, 1.0);
-        gl.clearDepth(1.0);
-        gl.enable(gl.DEPTH_TEST);
-        gl.depthFunc(gl.LEQUAL);
-
-        gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-        const fieldOfView = 45 * Math.PI / 180;
-        const aspect = gl.canvas.clientWidth / gl.canvas.clientHeight;
-        const zNear = 0.1;
-        const zFar = 100.0;
-        const projectionMatrix = mat4.create();
-
-        mat4.perspective(
-            projectionMatrix,
-            fieldOfView,
-            aspect,
-            zNear,
-            zFar
-        );
-
-        const modelViewMatrix = mat4.create();
-
-        //  Translate object
-        mat4.translate(modelViewMatrix,
-                       modelViewMatrix,
-                       [-0.0, 0.0, -6.0]);
-
-        //  Rotate object
-        mat4.rotate(modelViewMatrix,
-                    modelViewMatrix,
-                    this.cubeRotation,
-                    [0, 0, 1]);
-
-        mat4.rotate(modelViewMatrix,
-                    modelViewMatrix,
-                    this.cubeRotation * .7,
-                    [0, 1, 0]);
-
-        //  Normals matrix
-        const normalMatrix = mat4.create();
-        mat4.invert(normalMatrix, modelViewMatrix);
-        mat4.transpose(normalMatrix, normalMatrix);
-
-        {
-            //  Pull positions from buffer into vertexPosition attribute
-            const numComponents = 3;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.position);
-
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexPosition,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset
-            );
-
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexPosition
-            );
-        }
-
-        {
-            //  Pull normals from buffer into vertexPosition attribute
-            const numComponents = 3;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.normal);
-
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.vertexNormal,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset
-            );
-
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.vertexNormal
-            );
-        }
-
-        {
-            //  Pull teture coords from buffer into textureCoord attribute
-            const numComponents = 2;
-            const type = gl.FLOAT;
-            const normalize = false;
-            const stride = 0;
-            const offset = 0;
-
-            gl.bindBuffer(gl.ARRAY_BUFFER, buffers.textureCoord);
-
-            gl.vertexAttribPointer(
-                programInfo.attribLocations.textureCoord,
-                numComponents,
-                type,
-                normalize,
-                stride,
-                offset
-            );
-
-            gl.enableVertexAttribArray(
-                programInfo.attribLocations.textureCoord
-            );
-        }
-
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffers.indices);
-
-        //  Use program
-        gl.useProgram(programInfo.program);
-
-        //  Set shader uniforms
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.projectionMatrix,
-            false,
-            projectionMatrix
-        );
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.modelViewMatrix,
-            false,
-            modelViewMatrix
-        );
-        gl.uniformMatrix4fv(
-            programInfo.uniformLocations.normalMatrix,
-            false,
-            normalMatrix
-        );
-
-        // Activate and bind textures
-        gl.activeTexture(gl.TEXTURE0);
-
-        gl.bindTexture(gl.TEXTURE_2D, texture);
-
-        gl.uniform1i(programInfo.uniformLocations.uSampler, 0);
-
-        {
-            const vertexCount = 36;
-            const type = gl.UNSIGNED_SHORT;
-            const offset = 0;
-            gl.drawElements(gl.TRIANGLES, vertexCount, type, offset);
-        }
-
-        this.cubeRotation += deltaTime;
+        this.canvasRef = React.createRef();
+        this.fovRef = React.createRef();
+        this.rotRef = React.createRef();
+        this.posRef = React.createRef();
 
     }
 
     componentDidMount () {
 
-        this.start();
+        const canvas = this.canvasRef.current;
+
+        canvas.width = CANVAS_WIDTH;
+        canvas.height = CANVAS_HEIGHT;
+
+        const {OBJECT_FILE_FORMATS} = WebGLEnvironment;
+
+        const pyramidSimple =  {
+            'filename': 'pyramid_simple.ply',
+            'contents': pyramidSimplePLY,
+            'format': OBJECT_FILE_FORMATS.PLY
+        };
+
+        const pyramidComplex =  {
+            'filename': 'pyramid_complex.ply',
+            'contents': pyramidComplexPLY,
+            'format': OBJECT_FILE_FORMATS.PLY
+        };
+
+        const teapot = {
+            'filename': 'teapot.ply',
+            'contents': teapotPLY,
+            'format': OBJECT_FILE_FORMATS.PLY
+        };
+
+        const airplane = {
+            'filename': 'airplane.ply',
+            'contents': airplanePLY,
+            'format': OBJECT_FILE_FORMATS.PLY
+        };
+
+        const environment = new WebGLEnvironment({
+            canvas,
+            'objectFiles': [
+                airplane
+            ],
+            'images': [cubeImage],
+            'shaders': [
+                {
+                    'name': 'Flat Shading',
+                    'vertex': vSource,
+                    'fragment': fSource
+                }
+            ]
+        });
+
+        environment.addObject('airplane.ply');
+
+        environment.start();
+
+        this.environment = environment;
+
+    }
+
+    updateFOV = event => {
+
+        const {value} = event.target;
+
+        this.environment.updateFOV(value);
+        this.setState({'fovSliderValue': value});
+
+    }
+
+    updatePOS = (axis, event) => {
+
+        const {value} = event.target;
+
+        this.environment.updatePOS(axis, value);
+
+        let cpy = this.state.pos;
+        cpy[axis] = value;
+        this.setState({'pos': cpy});
+
+    }
+
+    updateROT = (axis, event) => {
+
+        const {value} = event.target;
+
+        this.environment.updateROT(axis, value);
+
+        let cpy = this.state.rot;
+        cpy[axis] = value;
+        this.setState({'rot': cpy});
+
+    }
+
+    updateSCALE = (axis, event) => {
+
+        const {value} = event.target;
+
+        this.environment.updateSCALE(axis, value);
+
+        let cpy = this.state.scale;
+        cpy[axis] = value;
+        this.setState({'scale': cpy});
 
     }
 
@@ -257,7 +166,81 @@ class App extends Component {
         return (
             <div>
                 <p>WebGL Demo</p>
-                <canvas id="canvas" style={canvasStyle}/>
+                <canvas id="canvas" style={canvasStyle} ref={this.canvasRef}/>
+                <div>
+                    FOV ANGLE: 
+                    <input
+                        type="range"
+                        min={MIN_FOV}
+                        max={MAX_FOV}
+                        value={this.state.fovSliderValue}
+                        onChange={this.updateFOV}
+                        ref={this.fovRef}
+                    />
+                </div>
+                <div>
+                    Position: 
+                    <input
+                        type="number"
+                        value={this.state.pos.x}
+                        onChange={evt => this.updatePOS('x', evt)}
+                        ref={this.posRef}
+                    />
+                    <input
+                        type="number"
+                        value={this.state.pos.y}
+                        onChange={evt => this.updatePOS('y', evt)}
+                        ref={this.posRef}
+                    />
+                    <input
+                        type="number"
+                        value={this.state.pos.z}
+                        onChange={evt => this.updatePOS('z', evt)}
+                        ref={this.posRef}
+                    />
+                </div>
+                <div>
+                    Rotation: 
+                    <input
+                        type="number"
+                        value={this.state.rot.x}
+                        onChange={evt => this.updateROT('x', evt)}
+                        ref={this.rotRef}
+                    />
+                    <input
+                        type="number"
+                        value={this.state.rot.y}
+                        onChange={evt => this.updateROT('y', evt)}
+                        ref={this.rotRef}
+                    />
+                    <input
+                        type="number"
+                        value={this.state.rot.z}
+                        onChange={evt => this.updateROT('z', evt)}
+                        ref={this.rotRef}
+                    />
+                </div>
+                <div>
+                    Scale: 
+                    <input
+                        type="number"
+                        value={this.state.scale.x}
+                        onChange={evt => this.updateSCALE('x', evt)}
+                        ref={this.scaleRef}
+                    />
+                    <input
+                        type="number"
+                        value={this.state.scale.y}
+                        onChange={evt => this.updateSCALE('y', evt)}
+                        ref={this.scaleRef}
+                    />
+                    <input
+                        type="number"
+                        value={this.state.scale.z}
+                        onChange={evt => this.updateSCALE('z', evt)}
+                        ref={this.scaleRef}
+                    />
+                </div>
             </div>
         );
 

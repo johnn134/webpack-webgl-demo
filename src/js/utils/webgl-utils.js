@@ -4,8 +4,6 @@
  * Utility functions for webgl
  */
 
-import cube from '../../obj/cube';
-
 /**
  * Initializes a shader program from the given fragment and vertex shaders
  * @param {Context} gl 
@@ -71,54 +69,58 @@ const loadShader = (gl, type, source) => {
  * @param {Context} gl webgl context
  * @returns {Object} buffer
  */
-const initBuffers = gl => {
+const initBuffers = (gl, meshes) => {
 
-    //  Positions
-   const positionBuffer = gl.createBuffer();
+    meshes.forEach((mesh, i) =>
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array(cube.positions),
-        gl.STATIC_DRAW
+        mesh.elements.forEach((element, j) => {
+
+            const buf = gl.createBuffer();
+
+            const bufferType = element.properties.type === 'list'
+                ? gl.ELEMENT_ARRAY_BUFFER
+                : gl.ARRAY_BUFFER;
+
+            const entries = flattenElementEntries(element);
+
+            console.log(entries);
+
+            gl.bindBuffer(bufferType, buf);
+            gl.bufferData(
+                bufferType,
+                entries,
+                gl.STATIC_DRAW
+            );
+
+            meshes[i].elements[j].buffer = buf;
+
+        })
+
     );
 
-    //  Normals
-    const normalBuffer = gl.createBuffer();
-    
-    gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array(cube.normals),
-        gl.STATIC_DRAW
-    );
+};
 
-    //  Indices
-    const indexBuffer = gl.createBuffer();
+const flattenElementEntries = element => {
 
-    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(
-        gl.ELEMENT_ARRAY_BUFFER,
-        new Uint16Array(cube.indices),
-        gl.STATIC_DRAW
-    );
+    let flattenedEntries = [];
 
-    // Texture Coordinates
-    const textureCoordBuffer = gl.createBuffer();
+    element.entries.forEach(entry => {
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, textureCoordBuffer);
-    gl.bufferData(
-        gl.ARRAY_BUFFER,
-        new Float32Array(cube.textureCoordinates),
-        gl.STATIC_DRAW
-    );
+        const portion = entry.slice(0, entry.length);
 
-    return {
-        position: positionBuffer,
-        normal: normalBuffer,
-        textureCoord: textureCoordBuffer,
-        indices: indexBuffer
-    };
+        flattenedEntries = flattenedEntries.concat(portion);
+
+    });
+
+    switch (element.properties.dataType) {
+
+    case 'float32':
+        return new Float32Array(flattenedEntries);
+    case 'int32':
+        return new Uint32Array(flattenedEntries);
+    default:
+        return flattenedEntries;
+    }
 
 };
 
