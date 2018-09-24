@@ -74,6 +74,11 @@ var config = {
                 test: /\.png$/,
                 exclude: /node_modules/,
                 loader: 'file-loader?name=images/[name].[ext]'
+            },
+            {
+                test: /\.ply$|.obj$/,
+                exclude: /node_modules/,
+                loader: 'raw-loader'
             }
         ]
     }
